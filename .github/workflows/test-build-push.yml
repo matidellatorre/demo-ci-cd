@@ -55,21 +55,21 @@ jobs:
                       Image: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
 
     notify-slack-on-failure:
-    if: failure()
-    needs: [test-and-build, push-docker-image] #TODO: add deploy-to-ec2
-    runs-on: ubuntu-latest
-    steps:
-        - name: Slack notification on failure
-          uses: rtCamp/action-slack-notify@v2
-          env:
-              SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-              SLACK_COLOR: "#FF0000"
-              SLACK_TITLE: "❌ Job Failed"
-              SLACK_MESSAGE: |
-                  Workflow failed
-                  Commit: ${{ github.sha }}
-                  Author: ${{ github.actor }}
-                  See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        if: failure()
+        needs: [test-and-build, push-docker-image] #TODO: add deploy-to-ec2
+        runs-on: ubuntu-latest
+        steps:
+            - name: Slack notification on failure
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+                  SLACK_COLOR: "#FF0000"
+                  SLACK_TITLE: "❌ Job Failed"
+                  SLACK_MESSAGE: |
+                      Workflow failed
+                      Commit: ${{ github.sha }}
+                      Author: ${{ github.actor }}
+                      See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     # deploy-to-ec2:
     #     needs: push-docker-image

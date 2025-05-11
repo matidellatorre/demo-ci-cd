@@ -48,7 +48,7 @@ jobs:
               env:
                   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
                   SLACK_COLOR: "#36a64f"
-                  SLACK_TITLE: "📦 Docker image pushed"
+                  SLACK_TITLE: "📦 Image pushed to DockerHub"
                   SLACK_MESSAGE: |
                       Docker Image pushed to DockerHub successfully.
                       Repo: ${{ github.repository }}

@@ -1,4 +1,3 @@
-yaml
 name: Demo CI-CD
 on:
   push:

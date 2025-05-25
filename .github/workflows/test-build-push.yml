@@ -85,31 +85,45 @@ jobs:
     deploy-to-ec2:
         needs: push-docker-image
         runs-on: ubuntu-latest
+        env:
+            EC2_HOST: ${{ secrets.EC2_HOST }}
+            EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+            DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+            DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+            APP_NAME: demo-ci-cd-app
+            DOCKER_IMAGE_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd
+
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v3
-            - name: Deploy to EC2
-              uses: appleboy/ssh-action@v0.1.0
-              with:
-                  host: ${{ secrets.EC2_HOST }}
-                  username: ${{ secrets.EC2_USERNAME }}
-                  key: ${{ secrets.EC2_SSH_KEY }}
-                  port: 22
-                  script: |
-                      echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-                      
-                      # Pull the specific tagged image (using commit SHA)
-                      sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+              uses: actions/checkout@v4
 
-                      # Stop and remove the old container if it exists
-                      if sudo docker ps -q --filter "name=demo-ci-cd-app" | grep -q .; then
-                          echo "Stopping existing container..."
-                          sudo docker stop demo-ci-cd-app
-                          sudo docker rm demo-ci-cd-app
-                      fi
+            - name: Deploy to EC2 via Manual SSH
+              run: |
+                  mkdir -p ~/.ssh
+                  echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa_ec2
+                  chmod 400 ~/.ssh/id_rsa_ec2
 
-                      # Run the new container in detached mode with a name
-                      sudo docker run -d -p 80:3000 --name demo-ci-cd-app ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+                  ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+                  chmod 600 ~/.ssh/known_hosts
+
+                  SSH_COMMANDS="
+                    
+                    echo '$DOCKERHUB_TOKEN' | sudo docker login -u '$DOCKERHUB_USERNAME' --password-stdin
+                    
+                    sudo docker pull $DOCKER_IMAGE_REPO:${{ github.sha }}
+                    
+                    if sudo docker ps -q --filter 'name=$APP_NAME' | grep -q .; then
+                        echo 'Deteniendo contenedor existente...'
+                        sudo docker stop $APP_NAME
+                        sudo docker rm $APP_NAME
+                    fi
+                    
+                    sudo docker run -d -p 80:3000 --name $APP_NAME $DOCKER_IMAGE_REPO:${{ github.sha }}
+                    
+                    sudo docker ps -a | grep $APP_NAME
+                  "
+                  ssh -i ~/.ssh/id_rsa_ec2 -o StrictHostKeyChecking=no "$EC2_USERNAME"@"$EC2_HOST" "$SSH_COMMANDS"
+
             - name: Notify EC2 deploy success
               if: success()
               uses: rtCamp/action-slack-notify@v2

@@ -4,134 +4,117 @@ on:
         branches:
             - main
 jobs:
-    test-and-build:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v3
-            - name: Use Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: "18.x"
-            - name: Install dependencies
-              run: yarn
-            - name: Run tests
-              run: yarn test
-            - name: Build the project
-              run: yarn build
-            - name: Notify Slack on 'Test and Build' failure
-              if: failure()
-              uses: rtCamp/action-slack-notify@v2
-              env:
-                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-                  SLACK_COLOR: "#FF0000"
-                  SLACK_TITLE: "❌ Test and Build Job Failed"
-                  SLACK_MESSAGE: |
-                      The 'test-and-build' job failed.
-                      Repo: ${{ github.repository }}
-                      Commit: ${{ github.sha }}
-                      Author: ${{ github.actor }}
-                      See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    # test-and-build:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: Checkout repository
+    #           uses: actions/checkout@v3
+    #         - name: Use Node.js
+    #           uses: actions/setup-node@v3
+    #           with:
+    #               node-version: "18.x"
+    #         - name: Install dependencies
+    #           run: yarn
+    #         - name: Run tests
+    #           run: yarn test
+    #         - name: Build the project
+    #           run: yarn build
+    #         - name: Notify Slack on 'Test and Build' failure
+    #           if: failure()
+    #           uses: rtCamp/action-slack-notify@v2
+    #           env:
+    #               SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #               SLACK_COLOR: "#FF0000"
+    #               SLACK_TITLE: "❌ Test and Build Job Failed"
+    #               SLACK_MESSAGE: |
+    #                   The 'test-and-build' job failed.
+    #                   Repo: ${{ github.repository }}
+    #                   Commit: ${{ github.sha }}
+    #                   Author: ${{ github.actor }}
+    #                   See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-    push-docker-image:
-        needs: test-and-build
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v3
-            - name: Set up QEMU
-              uses: docker/setup-qemu-action@v2
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v2
-            - name: Login to DockerHub
-              uses: docker/login-action@v2
-              with:
-                  username: ${{ secrets.DOCKERHUB_USERNAME }}
-                  password: ${{ secrets.DOCKERHUB_TOKEN }}
-            - name: Build and push
-              uses: docker/build-push-action@v2
-              with:
-                  context: .
-                  file: ./Dockerfile
-                  push: true
-                  tags: |
-                      ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
-                      ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
-            - name: Notify DockerHub push success
-              if: success()
-              uses: rtCamp/action-slack-notify@v2
-              env:
-                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-                  SLACK_COLOR: "#36a64f"
-                  SLACK_TITLE: "📦 Image pushed to DockerHub"
-                  SLACK_MESSAGE: |
-                      Docker Image pushed to DockerHub successfully.
-                      Repo: ${{ github.repository }}
-                      Image: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
-            - name: Notify Slack on 'Push Docker Image' failure
-              if: failure()
-              uses: rtCamp/action-slack-notify@v2
-              env:
-                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-                  SLACK_COLOR: "#FF0000"
-                  SLACK_TITLE: "❌ Push Docker Image Job Failed"
-                  SLACK_MESSAGE: |
-                      The 'push-docker-image' job failed.
-                      Repo: ${{ github.repository }}
-                      Commit: ${{ github.sha }}
-                      Author: ${{ github.actor }}
-                      See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    # push-docker-image:
+    #     needs: test-and-build
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: Checkout
+    #           uses: actions/checkout@v3
+    #         - name: Set up QEMU
+    #           uses: docker/setup-qemu-action@v2
+    #         - name: Set up Docker Buildx
+    #           uses: docker/setup-buildx-action@v2
+    #         - name: Login to DockerHub
+    #           uses: docker/login-action@v2
+    #           with:
+    #               username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #               password: ${{ secrets.DOCKERHUB_TOKEN }}
+    #         - name: Build and push
+    #           uses: docker/build-push-action@v2
+    #           with:
+    #               context: .
+    #               file: ./Dockerfile
+    #               push: true
+    #               tags: |
+    #                   ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
+    #                   ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+    #         - name: Notify DockerHub push success
+    #           if: success()
+    #           uses: rtCamp/action-slack-notify@v2
+    #           env:
+    #               SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #               SLACK_COLOR: "#36a64f"
+    #               SLACK_TITLE: "📦 Image pushed to DockerHub"
+    #               SLACK_MESSAGE: |
+    #                   Docker Image pushed to DockerHub successfully.
+    #                   Repo: ${{ github.repository }}
+    #                   Image: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
+    #         - name: Notify Slack on 'Push Docker Image' failure
+    #           if: failure()
+    #           uses: rtCamp/action-slack-notify@v2
+    #           env:
+    #               SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #               SLACK_COLOR: "#FF0000"
+    #               SLACK_TITLE: "❌ Push Docker Image Job Failed"
+    #               SLACK_MESSAGE: |
+    #                   The 'push-docker-image' job failed.
+    #                   Repo: ${{ github.repository }}
+    #                   Commit: ${{ github.sha }}
+    #                   Author: ${{ github.actor }}
+    #                   See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     deploy-to-ec2:
-        needs: push-docker-image
+        # needs: push-docker-image
         runs-on: ubuntu-latest
-        env:
-            EC2_HOST: ${{ secrets.EC2_HOST }}
-            EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-            DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-            DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-            APP_NAME: demo-ci-cd-app
-            DOCKER_IMAGE_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd
 
         steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            - name: Deploy over SSH
+              uses: easingthemes/ssh-deploy@v5.0.0
+              with:
+                  SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
 
-            - name: Deploy to EC2 via Manual SSH
-              run: |
-                  mkdir -p ~/.ssh
-                  echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa_ec2
-                  chmod 400 ~/.ssh/id_rsa_ec2
+                  REMOTE_HOST: ${{ secrets.EC2_HOST }}
+                  REMOTE_USER: ${{ secrets.EC2_USERNAME }}
 
-                  ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
-                  chmod 600 ~/.ssh/known_hosts
+                  SCRIPT_AFTER: |
+                      echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-                  echo "Conectando a $EC2_USERNAME@$EC2_HOST para ejecutar el script de despliegue..."
+                      # Pull de la imagen específica con el SHA del commit
+                      sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
 
-                  # Los comandos se pasan directamente a SSH usando 'here document'
-                  ssh -i ~/.ssh/id_rsa_ec2 -o StrictHostKeyChecking=no "$EC2_USERNAME"@"$EC2_HOST" << 'EOF'
-                    echo 'Iniciando despliegue en EC2...'
-                    
-                    echo '${{ env.DOCKERHUB_TOKEN }}' | sudo docker login -u '${{ env.DOCKERHUB_USERNAME }}' --password-stdin
-                    
-                    sudo docker pull ${{ env.DOCKER_IMAGE_REPO }}:${{ github.sha }}
-                    
-                    if sudo docker ps -q --filter 'name=${{ env.APP_NAME }}' | grep -q .; then
-                        echo 'Deteniendo contenedor existente...'
-                        sudo docker stop ${{ env.APP_NAME }}
-                        sudo docker rm ${{ env.APP_NAME }}
-                    else
-                        echo 'No se encontró un contenedor existente con el nombre ${{ env.APP_NAME }}.'
-                    fi
-                    
-                    sudo docker run -d -p 80:3000 --name ${{ env.APP_NAME }} ${{ env.DOCKER_IMAGE_REPO }}:${{ github.sha }}
-                    
-                    echo 'Despliegue de Docker completado en EC2.'
-                    
-                    sudo docker ps -a | grep ${{ env.APP_NAME }}
-                  EOF
+                      # Detener y eliminar el contenedor antiguo si existe
+                      if sudo docker ps -q --filter "name=demo-ci-cd-app" | grep -q .; then
+                          echo "Stopping existing container..."
+                          sudo docker stop demo-ci-cd-app
+                          sudo docker rm demo-ci-cd-app
+                      else
+                          echo "No existing container named demo-ci-cd-app found."
+                      fi
 
-                  echo "Comandos SSH ejecutados exitosamente."
+                      # Ejecutar el nuevo contenedor en modo detached con un nombre
+                      sudo docker run -d -p 80:3000 --name demo-ci-cd-app ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+
+                      echo "Deployment script finished on EC2."
+                      sudo docker ps -a | grep demo-ci-cd-app # Verificar el estado del contenedor
 
             - name: Notify EC2 deploy success
               if: success()

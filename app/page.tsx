@@ -1,6 +1,6 @@
 export default function Home() {
 	const companyName = "SmartTech"
-	const companyDescription = "Transformando el futuro"
+	const companyDescription = "Transformando el futuro de la tecnología con IA"
 
 	return (
 		<div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800">

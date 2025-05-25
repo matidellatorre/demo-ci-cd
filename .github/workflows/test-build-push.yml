@@ -19,6 +19,19 @@ jobs:
               run: yarn test
             - name: Build the project
               run: yarn build
+            - name: Notify Slack on 'Test and Build' failure
+              if: failure()
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+                  SLACK_COLOR: "#FF0000"
+                  SLACK_TITLE: "❌ Test and Build Job Failed"
+                  SLACK_MESSAGE: |
+                      The 'test-and-build' job failed.
+                      Repo: ${{ github.repository }}
+                      Commit: ${{ github.sha }}
+                      Author: ${{ github.actor }}
+                      See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     push-docker-image:
         needs: test-and-build
@@ -41,7 +54,9 @@ jobs:
                   context: .
                   file: ./Dockerfile
                   push: true
-                  tags: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
+                  tags: |
+                      ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
+                      ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
             - name: Notify DockerHub push success
               if: success()
               uses: rtCamp/action-slack-notify@v2
@@ -53,50 +68,69 @@ jobs:
                       Docker Image pushed to DockerHub successfully.
                       Repo: ${{ github.repository }}
                       Image: ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
-
-    notify-slack-on-failure:
-        if: failure()
-        needs: [test-and-build, push-docker-image] #TODO: add deploy-to-ec2
-        runs-on: ubuntu-latest
-        steps:
-            - name: Slack notification on failure
+            - name: Notify Slack on 'Push Docker Image' failure
+              if: failure()
               uses: rtCamp/action-slack-notify@v2
               env:
                   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
                   SLACK_COLOR: "#FF0000"
-                  SLACK_TITLE: "❌ Job Failed"
+                  SLACK_TITLE: "❌ Push Docker Image Job Failed"
                   SLACK_MESSAGE: |
-                      Workflow failed
+                      The 'push-docker-image' job failed.
+                      Repo: ${{ github.repository }}
                       Commit: ${{ github.sha }}
                       Author: ${{ github.actor }}
                       See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-    # deploy-to-ec2:
-    #     needs: push-docker-image
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #         - name: Checkout repository
-    #           uses: actions/checkout@v3
-    #         - name: Deploy to EC2
-    #           uses: appleboy/ssh-action@v0.1.0
-    #           with:
-    #               host: ${{ secrets.EC2_HOST }} # Dirección IP o DNS de tu EC2
-    #               username: ubuntu # O el nombre de usuario de tu instancia
-    #               key: ${{ secrets.EC2_SSH_KEY }} # La clave privada SSH almacenada en secretos
-    #               port: 22 # Puerto SSH
-    #               script: |
-    #                   # Pull de la imagen de Docker desde Docker Hub
-    #                   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
-    #                   # Ejecutar el contenedor
-    #                   docker run -d -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:latest
-    #         - name: Notify EC2 deploy success
-    #           if: success()
-    #           uses: rtCamp/action-slack-notify@v2
-    #           env:
-    #               SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-    #               SLACK_COLOR: "#2eb886"
-    #               SLACK_TITLE: "🚀 Deployed to Staging"
-    #               SLACK_MESSAGE: |
-    #                   Deploy to Staging successfully.
-    #                   Repo: ${{ github.repository }}
-    #                   Commit: ${{ github.sha }}
+    deploy-to-ec2:
+        needs: push-docker-image
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+            - name: Deploy to EC2
+              uses: appleboy/ssh-action@v0.1.0
+              with:
+                  host: ${{ secrets.EC2_HOST }}
+                  username: ${{ secrets.EC2_USERNAME }}
+                  key: ${{ secrets.EC2_SSH_KEY }}
+                  port: 22
+                  script: |
+                      echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+                      
+                      # Pull the specific tagged image (using commit SHA)
+                      sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+
+                      # Stop and remove the old container if it exists
+                      if sudo docker ps -q --filter "name=demo-ci-cd-app" | grep -q .; then
+                          echo "Stopping existing container..."
+                          sudo docker stop demo-ci-cd-app
+                          sudo docker rm demo-ci-cd-app
+                      fi
+
+                      # Run the new container in detached mode with a name
+                      sudo docker run -d -p 80:3000 --name demo-ci-cd-app ${{ secrets.DOCKERHUB_USERNAME }}/demo-ci-cd:${{ github.sha }}
+            - name: Notify EC2 deploy success
+              if: success()
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+                  SLACK_COLOR: "#2eb886"
+                  SLACK_TITLE: "🚀 Deployed to Staging"
+                  SLACK_MESSAGE: |
+                      Deploy to Staging successfully.
+                      Repo: ${{ github.repository }}
+                      Commit: ${{ github.sha }}
+            - name: Notify Slack on 'Deploy to EC2' failure
+              if: failure()
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+                  SLACK_COLOR: "#FF0000"
+                  SLACK_TITLE: "❌ Deploy to EC2 Job Failed"
+                  SLACK_MESSAGE: |
+                      The 'deploy-to-ec2' job failed.
+                      Repo: ${{ github.repository }}
+                      Commit: ${{ github.sha }}
+                      Author: ${{ github.actor }}
+                      See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

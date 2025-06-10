@@ -1,4 +1,4 @@
-name: Demo CI-CD
+name: Test-Build-Push-DeployEC2
 on:
     push:
         branches:

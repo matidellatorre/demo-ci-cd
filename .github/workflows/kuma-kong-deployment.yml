@@ -1,73 +1,74 @@
-name: Kuma-Kong-Deploy
+# name: Kuma-Kong-Deploy
 
-on:
-    workflow_run:
-        workflows: ["Test-Build-Push-DeployEC2"]
-        types:
-            - completed
-        branches: [main]
+# on:
+#     workflow_run:
+#         workflows: ["Test-Build-Push-DeployEC2"]
+#         types:
+#             - completed
+#         branches: [main]
 
-jobs:
-    run-commands:
-        runs-on: ubuntu-latest
+# jobs:
+#     run-commands:
+#         runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+#         steps:
+#             - name: Checkout code
+#               uses: actions/checkout@v4
 
-            - name: Setup kubectl
-              uses: azure/setup-kubectl@v3
-              with:
-                  version: "v1.28.0"
+#             - name: Setup kubectl
+#               uses: azure/setup-kubectl@v3
+#               with:
+#                   version: "v1.28.0"
 
-            - name: Setup Helm
-              uses: azure/setup-helm@v3
-              with:
-                  version: "v3.12.0"
+#             - name: Setup Helm
+#               uses: azure/setup-helm@v3
+#               with:
+#                   version: "v3.12.0"
 
-            - name: Configure kubectl
-              run: |
-                  echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
-                  chmod 600 ~/.kube/config
+#             - name: Configure kubectl
+#               run: |
+#                   echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
+#                   chmod 600 ~/.kube/config
 
-            - name: Register Landing Ingress in Kong
-              run: |
-                  cat <<EOF | kubectl apply -f -
-                  apiVersion: networking.k8s.io/v1
-                  kind: Ingress
-                  metadata:
-                    name: front-access
-                    namespace: kuma-system
-                    annotations:
-                      konghq.com/strip-path: 'false'
-                      konghq.com/protocols: http
-                      konghq.com/https-redirect-status-code: "301"
-                  spec:
-                    ingressClassName: kong
-                    rules:
-                    - http:
-                        paths:
-                        - path: /landing
-                          pathType: Prefix
-                          backend:
-                            service:
-                              name: front-service
-                              port:
-                                number: 8001
-                  EOF
+#             - name: Register Landing Ingress in Kong
+#               run: |
+#                   cat <<EOF | kubectl apply -f -
+#                   apiVersion: networking.k8s.io/v1
+#                   kind: Ingress
+#                   metadata:
+#                     name: front-access
+#                     namespace: kuma-system
+#                     annotations:
+#                       konghq.com/strip-path: 'false'
+#                       konghq.com/protocols: http
+#                       konghq.com/https-redirect-status-code: "301"
+#                   spec:
+#                     ingressClassName: kong
+#                     rules:
+#                     - http:
+#                         paths:
+#                         - path: /landing
+#                           pathType: Prefix
+#                           backend:
+#                             service:
+#                               name: front-service
+#                               port:
+#                                 number: 8001
+#                   EOF
 
-            - name: Deploy front-service with Helm
-              run: |
-                  cat <<EOF > service.yaml
-                  services:
-                    front-service:
-                      enabled: true
-                      name: front-service
-                      image: mdtitba/demo-ci-cd:latest
-                      version: v1
-                      port: 8001
-                      db:
-                        enabled: false
-                  EOF
+#             - name: Deploy front-service with Helm
+#               run: |
+#                   cat <<EOF > service.yaml
+#                   services:
+#                     front-service:
+#                       enabled: true
+#                       name: front-service
+#                       image: mdtitba/demo-ci-cd:latest
+#                       version: v1
+#                       port: 8001
+#                       db:
+#                         enabled: false
+#                   EOF
 
-                  helm upgrade --install app-prod ./services-chart -f service.yaml
+#                   helm upgrade --install app-prod ./services-chart -f service.yaml
+

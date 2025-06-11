@@ -1,4 +1,4 @@
-export default function Home() {
+// export default function Home() {
 	const companyName = "SmartTech"
 	const companyDescription = "Transformando el futuro de la tecnología con IA"
 

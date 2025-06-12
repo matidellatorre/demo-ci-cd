@@ -1,8 +1,8 @@
-// export default function Home() {
-// 	const companyName = "SmartTech"
-// 	const companyDescription = "Transformando el futuro de la tecnología con IA"
+export default function Home() {
+	const companyName = "SmartTech"
+	const companyDescription = "Transformando el futuro de la tecnología con IA"
 
-// 	return (
+	return (
 		<div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800">
 			{/* Navbar */}
 			<nav className="fixed w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
